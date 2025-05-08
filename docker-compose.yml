@@ -1,0 +1,73 @@
+services:
+  user-service:
+    build: ./user-service
+    ports:
+      - "${USER_PORT}:${USER_PORT}"
+    networks:
+      - microservices-network
+    depends_on:
+      - mongo
+    environment:
+      - PORT=${USER_PORT}
+      - MONGO_URI=mongodb://mongo:27017/${MONGO_DB}
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:${USER_PORT}/health" ]
+      interval: 30s
+      retries: 3
+      start_period: 10s
+      timeout: 5s
+
+  product-service:
+    build: ./product-service
+    ports:
+      - "${PRODUCT_PORT}:${PRODUCT_PORT}"
+    networks:
+      - microservices-network
+    depends_on:
+      - mongo
+    environment:
+      - PORT=${PRODUCT_PORT}
+      - MONGO_URI=mongodb://mongo:27017/${MONGO_DB}
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:${PRODUCT_PORT}/health" ]
+      interval: 30s
+      retries: 3
+      start_period: 10s
+      timeout: 5s
+
+  order-service:
+    build: ./order-service
+    ports:
+      - "${ORDER_PORT}:${ORDER_PORT}"
+    networks:
+      - microservices-network
+    depends_on:
+      - mongo
+      - user-service
+      - product-service
+    environment:
+      - PORT=${ORDER_PORT}
+      - MONGO_URI=mongodb://mongo:27017/${MONGO_DB}
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:${ORDER_PORT}/health" ]
+      interval: 30s
+      retries: 3
+      start_period: 10s
+      timeout: 5s
+
+  mongo:
+    image: mongo
+    container_name: mongo
+    networks:
+      - microservices-network
+    ports:
+      - "${MONGO_PORT}:${MONGO_PORT}"
+    volumes:
+      - mongo-data:/data/db
+
+networks:
+  microservices-network:
+    driver: bridge
+
+volumes:
+  mongo-data:
